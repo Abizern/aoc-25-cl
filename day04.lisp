@@ -9,8 +9,8 @@
 
 (defun accessible-p (grid cell)
   (> 4 (count-if #'roll-p
-                 (mapcar (lambda (c) (cell-value grid c))
-                         (cell-neighbours grid cell :diagonals t)))))
+                 (cell-neighbours grid cell :diagonals t)
+                 :key (lambda (c) (cell-value grid c)))))
 
 (defun filter-accessible-rolls (grid rolls)
   (remove-if-not (lambda (c) (accessible-p grid c)) rolls))
@@ -30,7 +30,11 @@
 
 ;; => 8013
 (defun part2 (&optional (grid (lines-to-grid (read-input :format :lines))))
-  (loop for accessible = (filter-ac)))
+  (loop with g = (copy-grid grid)
+        for accessible = (accessible-rolls g)
+        while accessible
+        sum (length accessible)
+        do (remove-rolls g accessible)))
 
 (defparameter *example* (lines-to-grid '("..@@.@@@@."
                                          "@@@.@.@.@@"
