@@ -26,7 +26,7 @@
 
 ;; => 1384
 (defun part1 (&optional (grid (lines-to-grid (read-input :format :lines))))
- (length (accessible-rolls grid)))
+  (length (accessible-rolls grid)))
 
 ;; => 8013
 (defun part2 (&optional (grid (lines-to-grid (read-input :format :lines))))
