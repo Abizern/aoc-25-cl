@@ -80,6 +80,79 @@
       (* (p3-x (car target-pair))
          (p3-x (cdr target-pair))))))
 
+;;; Using Disjoint-set-unions to solve this.
+
+(defstruct dsu
+  (parent #() :type simple-vector)
+  (size #() :type simple-vector)
+  (components 0 :type fixnum))
+
+(defun create-dsu (n)
+  (let ((parent (make-array n))
+        (size (make-array n :initial-element 1)))
+    (dotimes (i n)
+      (setf (aref parent i) i))
+    (make-dsu :parent parent :size size :components n)))
+
+(defun dsu-find (dsu x)
+  "Find the root representative of X."
+  (let* ((parent (dsu-parent dsu))
+         (p (aref parent x)))
+    (if (= p x)
+        x
+        (setf (aref parent x) (dsu-find dsu p)))))
+
+(defun dsu-union (dsu x y)
+  "Merge the sets containing X and Y. Return T if a merge occurred."
+  (let ((root-x (dsu-find dsu x))
+        (root-y (dsu-find dsu y)))
+    (when (/= root-x root-y)
+      (let ((parent (dsu-parent dsu))
+            (size (dsu-size dsu)))
+        ;; Attach the small tree under the larger tree
+        (when (< (aref size root-x) (aref size root-y))
+          (rotatef root-x root-y))
+        (setf (aref parent root-y) root-x)
+        (incf (aref size root-x) (aref size root-y))
+        (decf (dsu-components dsu))
+        t))))
+
+(defun generate-indexed-pairs (junctions-vec)
+  "Return a sorted list of ((idx-a . idx-b) . dist-sq). from JUNCTIONS."
+  (let* ((n (length junctions-vec))
+         (pairs (loop for i from 0 below (1- n)
+                      for a = (aref junctions-vec i)
+                      nconc (loop for j from (1+ i) below n
+                                  for b  = (aref junctions-vec j)
+                                  collect (cons (cons i j)
+                                                (squared-distance a b))))))
+    (mapcar #'car (sort pairs #'< :key #'cdr))))
+
+;; 72150
+(defun part1-dsu (&optional (junctions (parse-junctions (read-input :format :lines))))
+  (let* ((junctions-vec (coerce junctions 'vector))
+         (sorted-pairs (generate-indexed-pairs junctions-vec))
+         (n (length junctions))
+         (dsu (create-dsu n)))
+    (loop for (i . j) in sorted-pairs
+          repeat 1000
+          do (dsu-union dsu i j))
+    (let ((sizes (loop for i from 0 below n
+                       when (= (aref (dsu-parent dsu) i) i)
+                         collect (aref (dsu-size dsu) i))))
+      (setf sizes (sort sizes #'>))
+      (* (first sizes) (second sizes) (third sizes)))))
+
+(defun part2-dsu (&optional (junctions (parse-junctions (read-input :format :lines))))
+  (let* ((junctions-vec (coerce junctions 'vector))
+         (sorted-pairs (generate-indexed-pairs junctions-vec))
+         (dsu (create-dsu (length junctions-vec))))
+    (loop for (i . j) in sorted-pairs
+          do (dsu-union dsu i j)
+          when (= (dsu-components dsu) 1)
+            return (* (p3-x (aref junctions-vec i))
+                      (p3-x (aref junctions-vec j))))))
+
 (defparameter *example* (parse-junctions '("162,817,812"
                                            "57,618,57"
                                            "906,360,560"
